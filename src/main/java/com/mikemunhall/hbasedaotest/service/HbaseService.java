@@ -37,5 +37,5 @@ public interface HbaseService {
 	
 	List<Result> getListRowKey(String tableName, List<String> rowKeys, String familyColumn, String column);
 
-	List<Result> findById( String tableName,String familyName ,String columnName,  String columnValue);
+	List<Result> findById(String tableName, String familyName, String columnName, String columnValue);
 }

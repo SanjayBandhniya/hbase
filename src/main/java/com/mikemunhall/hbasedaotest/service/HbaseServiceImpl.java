@@ -6,15 +6,20 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.CompareFilter;
+import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.PageFilter;
@@ -23,7 +28,6 @@ import org.apache.hadoop.hbase.filter.RegexStringComparator;
 import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.hadoop.hbase.HbaseTemplate;
 import org.springframework.data.hadoop.hbase.TableCallback;
 import org.springframework.stereotype.Service;
@@ -31,9 +35,28 @@ import org.springframework.stereotype.Service;
 @Service
 public class HbaseServiceImpl implements HbaseService {
 
-	@Autowired
-	private HbaseTemplate hbaseTemplate;
+	private static HbaseTemplate hbaseTemplate;
+
 	private final String encoding = "utf-8";
+
+	static {
+		try {
+			initHBase();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static void initHBase() throws MasterNotRunningException, ZooKeeperConnectionException, IOException {
+		Configuration configuration = HBaseConfiguration.create();
+		configuration.set("hbase.zookeeper.quorum", "localhost");
+		configuration.set("hbase.zookeeper.property.clientPort", "2181");
+		Configuration cfg = HBaseConfiguration.create(configuration);
+
+		HBaseAdmin admin = new HBaseAdmin(cfg);
+		hbaseTemplate = new HbaseTemplate(cfg);
+
+	}
 
 	@Override
 	public List<Result> scaner(final String tableName) {
@@ -78,7 +101,7 @@ public class HbaseServiceImpl implements HbaseService {
 				Scan scan = new Scan();
 				FilterList fl = new FilterList(FilterList.Operator.MUST_PASS_ALL);
 				fl.addFilter(filter1);
-				scan.addFamily(Bytes.toBytes("personal"));
+				scan.addFamily(Bytes.toBytes(familyName));
 				scan.setFilter(fl);
 				ResultScanner rs = table.getScanner(scan);
 				for (Result result : rs) {
